@@ -1,0 +1,365 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Image Converter to WebP</title>
+      <style>
+          * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+          }
+
+          body {
+              font-family: 'Arial', sans-serif;
+              background-color: #e0e5ec;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              padding: 20px;
+          }
+
+          .container {
+              background: #e0e5ec;
+              padding: 40px;
+              border-radius: 30px;
+              box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.1), -10px -10px 20px rgba(255, 255, 255, 0.7);
+              width: 100%;
+              max-width: 750px;
+              text-align: center;
+          }
+
+          header {
+              margin-bottom: 30px;
+          }
+
+          h1 {
+              font-size: 2.5em;
+              color: #333;
+              margin-bottom: 20px;
+              font-weight: 600;
+          }
+
+          .upload-section,
+          .quality-section,
+          .gallery-section {
+              margin-bottom: 30px;
+          }
+
+          .upload-btn, .convert-btn, .download-btn, .clear-btn {
+              padding: 15px 30px;
+              margin: 10px;
+              border-radius: 30px;
+              background: #e0e5ec;
+              box-shadow: 6px 6px 15px rgba(0, 0, 0, 0.1), -6px -6px 15px rgba(255, 255, 255, 0.7);
+              font-size: 1.1em;
+              cursor: pointer;
+              transition: all 0.3s ease-in-out;
+              border: none;
+          }
+
+          .upload-btn:hover,
+          .convert-btn:hover,
+          .download-btn:hover,
+          .clear-btn:hover {
+              box-shadow: 6px 6px 25px rgba(0, 0, 0, 0.2), -6px -6px 25px rgba(255, 255, 255, 0.9);
+          }
+
+          input[type="file"] {
+              display: none;
+          }
+
+          .quality-label {
+              font-size: 1.2em;
+              color: #333;
+              margin-bottom: 10px;
+          }
+
+          .quality-slider {
+              width: 100%;
+              margin: 10px 0;
+              padding: 10px;
+              border-radius: 20px;
+              background: #e0e5ec;
+              box-shadow: inset 5px 5px 10px rgba(0, 0, 0, 0.15), inset -5px -5px 10px rgba(255, 255, 255, 0.7);
+          }
+
+          #quality-value {
+              font-size: 1.1em;
+              color: #333;
+          }
+
+          .image-gallery {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+              gap: 15px;
+              margin-top: 20px;
+          }
+
+          .image-gallery img {
+              width: 100%;
+              border-radius: 15px;
+              box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.1), -4px -4px 15px rgba(255, 255, 255, 0.8);
+              transition: transform 0.3s ease-in-out;
+              cursor: pointer;
+              object-fit: cover;
+          }
+
+          .image-gallery img:hover {
+              transform: scale(1.05);
+          }
+
+          .download-btn {
+              background-color: #4caf50;
+              color: white;
+              border: none;
+          }
+
+          .clear-btn {
+              background-color: #f44336;
+              color: white;
+          }
+
+          .controls {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-top: 20px;
+          }
+
+          /* Popup Modal Styles */
+          .modal {
+              display: none;
+              position: fixed;
+              z-index: 1000;
+              left: 0;
+              top: 0;
+              width: 100%;
+              height: 100%;
+              background-color: rgba(0, 0, 0, 0.5);
+              justify-content: center;
+              align-items: center;
+          }
+
+          .modal-content {
+              background-color: #fff;
+              border-radius: 15px;
+              padding: 20px;
+              box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.1), -10px -10px 20px rgba(255, 255, 255, 0.7);
+          }
+
+          .modal-content img {
+              max-width: 100%;
+              border-radius: 10px;
+          }
+
+          .close {
+              color: #fff;
+              font-size: 2em;
+              position: absolute;
+              top: 10px;
+              right: 20px;
+              cursor: pointer;
+          }
+
+          /* Progress Bar Styles */
+          .progress-container {
+              width: 100%;
+              background-color: #f3f3f3;
+              border-radius: 10px;
+              margin-top: 20px;
+              height: 20px;
+          }
+
+          .progress-bar {
+              width: 0%;
+              height: 100%;
+              background-color: #4caf50;
+              border-radius: 10px;
+              text-align: center;
+              line-height: 20px;
+              color: white;
+              font-weight: bold;
+          }
+
+          #progress-percent {
+              font-size: 1.1em;
+              color: #333;
+              margin-top: 10px;
+          }
+      </style>
+      <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+  </head>
+  <body>
+      <div class="container">
+          <header>
+              <h1>Image Converter to WebP</h1>
+          </header>
+
+          <section class="upload-section">
+              <label for="image-upload" class="upload-btn">Choose Images</label>
+              <input type="file" id="image-upload" multiple accept="image/*">
+              <button id="convert-btn" class="convert-btn">Convert to WebP</button>
+          </section>
+
+          <section class="quality-section">
+              <div class="quality-label">Adjust WebP Quality</div>
+              <input type="range" id="quality-slider" class="quality-slider" min="0" max="100" value="80">
+              <div id="quality-value">Quality: 80</div>
+          </section>
+
+          <section class="gallery-section">
+              <h2>Converted Images</h2>
+              <div id="image-gallery" class="image-gallery"></div>
+              <button id="download-zip-btn" class="download-btn" style="display: none;">Download All as Zip</button>
+          </section>
+
+          <div class="controls">
+              <div></div>
+              <button id="clear-btn" class="clear-btn">Clear Images</button>
+          </div>
+
+          <!-- Progress Bar for Conversion -->
+          <div id="progress-container" class="progress-container" style="display: none;">
+              <div id="progress-bar" class="progress-bar">0%</div>
+          </div>
+          <div id="progress-percent" style="display: none;">Converting: 0%</div>
+      </div>
+
+      <!-- Modal for displaying large images -->
+      <div id="image-modal" class="modal">
+          <span class="close" id="close-modal">&times;</span>
+          <div class="modal-content">
+              <img id="modal-image" src="" alt="Large Image">
+          </div>
+      </div>
+
+      <script>
+          document.getElementById("image-upload").addEventListener("change", handleFileSelect);
+          document.getElementById("convert-btn").addEventListener("click", convertImages);
+          document.getElementById("download-zip-btn").addEventListener("click", downloadZip);
+          document.getElementById("quality-slider").addEventListener("input", updateQuality);
+          document.getElementById("clear-btn").addEventListener("click", clearImages);
+          document.getElementById("close-modal").addEventListener("click", closeModal);
+
+          let uploadedImages = [];
+          let convertedImages = [];
+          let quality = 80;
+          let currentImageIndex = 0;
+
+          function handleFileSelect(event) {
+              const files = event.target.files;
+              uploadedImages = Array.from(files);
+          }
+
+          function updateQuality() {
+              quality = document.getElementById("quality-slider").value;
+              document.getElementById("quality-value").innerText = `Quality: ${quality}`;
+          }
+
+          function convertImages() {
+              if (uploadedImages.length === 0) {
+                  alert("Please upload some images first.");
+                  return;
+              }
+
+              convertedImages = [];
+              currentImageIndex = 0;
+
+              // Show progress bar
+              document.getElementById("progress-container").style.display = "block";
+              document.getElementById("progress-percent").style.display = "block";
+              document.getElementById("progress-bar").style.width = "0%";
+              document.getElementById("progress-bar").innerText = "0%";
+
+              uploadedImages.forEach(image => {
+                  const reader = new FileReader();
+                  reader.onload = function(event) {
+                      const imageData = event.target.result;
+                      const img = new Image();
+                      img.onload = function() {
+                          const canvas = document.createElement('canvas');
+                          const ctx = canvas.getContext('2d');
+                          canvas.width = img.width;
+                          canvas.height = img.height;
+                          ctx.drawImage(img, 0, 0);
+
+                          // Convert to WebP using the canvas API with quality control
+                          canvas.toBlob(function(blob) {
+                              // Store the converted image blob for download
+                              convertedImages.push({ blob: blob, filename: `image_${Date.now()}.webp` });
+                              currentImageIndex++;
+
+                              updateProgressBar();
+
+                              // Show Download All Zip button if all images are converted
+                              if (currentImageIndex === uploadedImages.length) {
+                                  displayConvertedImages();
+                                  document.getElementById("download-zip-btn").style.display = 'inline-block';
+                              }
+                          }, 'image/webp', quality / 100);
+                      };
+                      img.src = imageData;
+                  };
+                  reader.readAsDataURL(image);
+              });
+          }
+
+          function updateProgressBar() {
+              const progress = Math.floor((currentImageIndex / uploadedImages.length) * 100);
+              document.getElementById("progress-bar").style.width = `${progress}%`;
+              document.getElementById("progress-bar").innerText = `${progress}%`;
+              document.getElementById("progress-percent").innerText = `Converting: ${progress}%`;
+          }
+
+          function displayConvertedImages() {
+              const gallery = document.getElementById("image-gallery");
+              gallery.innerHTML = "";
+
+              convertedImages.forEach(img => {
+                  const convertedImage = document.createElement("img");
+                  convertedImage.src = URL.createObjectURL(img.blob);
+                  convertedImage.addEventListener("click", () => downloadIndividualImage(img.blob));
+                  gallery.appendChild(convertedImage);
+              });
+          }
+
+          function downloadIndividualImage(blob) {
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = "converted_image.webp";
+              link.click();
+          }
+
+          function downloadZip() {
+              const zip = new JSZip();
+              convertedImages.forEach((img, index) => {
+                  zip.file(img.filename, img.blob);
+              });
+
+              // Generate the zip file and trigger the download
+              zip.generateAsync({ type: "blob" }).then(function(content) {
+                  const link = document.createElement("a");
+                  link.href = URL.createObjectURL(content);
+                  link.download = "converted_images.zip";
+                  link.click();
+              });
+          }
+
+          function clearImages() {
+              uploadedImages = [];
+              convertedImages = [];
+              document.getElementById("image-gallery").innerHTML = "";
+              document.getElementById("download-zip-btn").style.display = 'none';
+              document.getElementById("progress-container").style.display = "none";
+              document.getElementById("progress-percent").style.display = "none";
+          }
+
+          function closeModal() {
+              document.getElementById("image-modal").style.display = "none";
+          }
+      </script>
+  </body>
+  </html>
